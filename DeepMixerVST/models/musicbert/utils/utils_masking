@@ -1,0 +1,104 @@
+def get_min_bar_idx_from_oct(octuple_midi_str_aslist = ("<s> "*8).split() + (" </s>"*8).split()
+              , min_bar_mask: int = 0):
+  
+  max_bars = int(octuple_midi_str_aslist[-16][3:-1])
+  # print(f'max_bars = {max_bars}')
+  try:
+    assert min_bar_mask <= max_bars
+  except:
+    raise Exception(f"The input MIDI does not have {min_bar_mask} bars, it has {octuple_midi_str_aslist[-16][3:-2]} bars")
+
+  
+  try:
+    # '<0-min_bar_mask>' should be present if a note from bar `min_bar_mask` is present
+    min_idx = octuple_midi_str_aslist.index(f'<0-{min_bar_mask}>')
+  except:
+    return get_min_bar_idx_from_oct(octuple_midi_str_aslist, min_bar_mask + 1)
+  
+
+  # #Exception, if no note from the bar `min_bar_mask` is present, program fails
+  try:
+    assert min_idx % 8 == 0
+  except:
+    raise Exception("Fatal backend error!: min_idx not a multiple of 8")
+
+  print(f'Minimum index having {min_bar_mask} bars is {min_idx} belonging to octuple with index {int(min_idx/8)} ')
+
+  return min_idx
+
+
+#Masks every element of octuples with `program` except the program entry, predicting masks on this leads to remixed instrument
+
+#program: instrument ID (https://jazz-soft.net/demo/GeneralMidi.html)
+#octuplemidi_token_encoding: like torch.Tensor([0, 0, 0, 0, 0, 0, 0, 0, ......., 2, 2, 2, 2, 2, 2, 2, 2])
+#percentage_mask: how much percentage of notes of `program` instrument are to be masked
+#replacement_program: the `replacement_program` instrument that will replace the masked octuples, 
+#                       perform mask prediction to predict notes of `replacement_program` in place
+#mask_attribs: Only these elements of octuples will be masked from the chosen octuples that are to be masked,
+# e.g: If `mask_attribs` = [0,1,3,4,5,6,7], everything except `program` will be masked in octuples, similarly,
+# If `mask_attribs` = [3], only `pitch` will be masked in chosen octuples
+
+def mask_instrument_notes_program(program: int, octuplemidi_token_encoding: torch.Tensor, \
+                    label_dict: fairseq.data.dictionary.Dictionary, percentage_mask = 100,
+                    replacement_program:int = None, mask_attribs = [0, 1, 3, 4, 5, 6, 7], 
+                    min_bar_mask = 0, seed = 42):
+  np.random.seed(seed)
+
+  octuplemidi_token_encoding = octuplemidi_token_encoding.clone()
+  rev_label_dict = reverse_label_dict(label_dict)
+  octuple_midi_str_aslist = [rev_label_dict[x] for x in octuplemidi_token_encoding.tolist()]
+
+  #Find minimum index having `positon` equal to `min_bar_mask`
+  #https://stackoverflow.com/questions/2361426/get-the-first-item-from-an-iterable-that-matches-a-condition
+  min_idx = get_min_bar_idx_from_oct(octuple_midi_str_aslist, min_bar_mask)
+  print(min_idx)
+
+  #Expecting soft copies to be made, i.e, changing `octuplemidi_token_encoding_mutable` also changes `octuplemidi_token_encoding`
+  octuplemidi_token_encoding_mutable = octuplemidi_token_encoding[min_idx: ]
+  octuple_midi_str_aslist_mutable = octuple_midi_str_aslist[min_idx: ]
+
+  instrument_octuple_indices = [int(index/8) for index,value in enumerate(octuple_midi_str_aslist_mutable) if value == f'<2-{program}>' ]
+
+  try:
+    assert len(instrument_octuple_indices) > 0
+  except:
+    raise Exception(f"No notes found with program = {program}")
+
+  print(f'Found {len(instrument_octuple_indices)} octuples with program = {program}')
+  print(f'Choosing {int(len(instrument_octuple_indices) * (percentage_mask/100) )} octuples to mask....')
+
+  if percentage_mask <= 100 and percentage_mask >= 0:
+    masked_octs = np.random.choice( a =  instrument_octuple_indices , \
+                               size = int( len(instrument_octuple_indices) * (percentage_mask/100) ), \
+                               replace = False)
+    
+    masked_octs = list(masked_octs)
+    masked_octs.sort(reverse = False)
+    
+    #Prints octuple indices valid for original input `octuplemidi_token_encoding` and NOT `octuplemidi_token_encoding_mutable`
+    masked_octs_orig = [( int(min_idx/8) + x ) for x in masked_octs]
+    print(f'Masking octuple numbers: { masked_octs_orig}')
+
+    mask_idx = label_dict.index('<mask>')
+
+    replacement_program_idx = None
+    if replacement_program is not None:
+      replacement_program_idx = label_dict.index(f'<2-{replacement_program}>')
+
+    for masked_oct in masked_octs:
+
+      octuplemidi_token_encoding_mutable.index_fill_(0, torch.tensor( masked_oct * 8 + mask_attribs ), mask_idx)
+
+      if replacement_program is not None:
+        octuplemidi_token_encoding_mutable.index_fill_(0, torch.tensor( [
+                      masked_oct * 8 + 2
+                      ]) , replacement_program_idx)
+      # octuplemidi_token_encoding[ masked_oct * 8: (masked_oct + 1)*8 ] = mask_idx
+  else:
+    raise IndexError
+
+  #Expecting `octuplemidi_token_encoding` to have changed when we changed `octuplemidi_token_encoding_mutable` above
+
+  octuplemidi_token_encoding[min_idx: ] = octuplemidi_token_encoding_mutable
+
+  return octuplemidi_token_encoding, masked_octs_orig

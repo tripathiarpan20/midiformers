@@ -1,0 +1,11 @@
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VSCODE
+.vscode/ftp-sync.json
+.vscode/settings.json
+
+# Don't commit model checkpoints to repo (too large)
+*.pkl
+*.ckpt
