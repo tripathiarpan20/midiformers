@@ -1,6 +1,8 @@
+#Pycache
+*.pyc
 
 # Jupyter Notebook
-.ipynb_checkpoints
+*.ipynb_checkpoints
 
 # VSCODE
 .vscode/ftp-sync.json

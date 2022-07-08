@@ -12,7 +12,7 @@ import time
 import math
 import signal
 import hashlib
-from multiprocessing import Pool, Lock, Manager
+# from multiprocessing import Pool, Lock, Manager
 
 
 pos_resolution = 16  # per beat (quarter note)
@@ -41,11 +41,12 @@ data_zip = None
 output_file = None
 
 
-lock_file = Lock()
-lock_write = Lock()
-lock_set = Lock()
-manager = Manager()
-midi_dict = manager.dict()
+# lock_file = Lock()
+# lock_write = Lock()
+# lock_set = Lock()
+# manager = Manager()
+midi_dict = {}
+# midi_dict = manager.dict()
 
 
 # (0 Measure, 1 Pos, 2 Program, 3 Pitch, 4 Duration, 5 Velocity, 6 TimeSig, 7 Tempo)
@@ -309,7 +310,7 @@ def F(file_name):
     midi_file = None
     for _ in range(try_times):
         try:
-            lock_file.acquire()
+            # lock_file.acquire()
             with data_zip.open(file_name) as f:
                 # this may fail due to unknown bug
                 midi_file = io.BytesIO(f.read())
@@ -321,7 +322,8 @@ def F(file_name):
                       ' ' + str(e) + '\n', end='')
                 return None
         finally:
-            lock_file.release()
+            # lock_file.release()
+            pass
     try:
         with timeout(seconds=600):
             midi_obj = miditoolkit.midi.parser.MidiFile(file=midi_file)
@@ -356,13 +358,13 @@ def F(file_name):
                 midi_hash = get_hash(e)
             except BaseException as e:
                 pass
-            lock_set.acquire()
+            # lock_set.acquire()
             if midi_hash in midi_dict:
                 dup_file_name = midi_dict[midi_hash]
                 duplicated = True
             else:
                 midi_dict[midi_hash] = file_name
-            lock_set.release()
+            # lock_set.release()
             if duplicated:
                 print('ERROR(DUPLICATED): ' + midi_hash + ' ' +
                       file_name + ' == ' + dup_file_name + '\n', end='')
@@ -402,13 +404,14 @@ def F(file_name):
             print('ERROR(ENCODE): ' + file_name + ' ' + str(e) + '\n', end='')
             return False
         try:
-            lock_write.acquire()
+            # lock_write.acquire()
             writer(file_name, output_str_list)
         except BaseException as e:
             print('ERROR(WRITE): ' + file_name + ' ' + str(e) + '\n', end='')
             return False
         finally:
-            lock_write.release()
+            # lock_write.release()
+            pass
         print('SUCCESS: ' + file_name + '\n', end='')
         return True
     except BaseException as e:

@@ -1,6 +1,7 @@
 import torch
-import fairseq.fairseq as fairseq
-from musicbert import MusicBERT
+from fairseq.models import BaseFairseqModel
+from musicbert_model import *
 from utils import *
+from pipeline import *
 
 

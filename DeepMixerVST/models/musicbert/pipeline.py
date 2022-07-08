@@ -1,5 +1,6 @@
 from preprocess import *
 from utils import *
+from musicbert_model import *
 
 
 def parse_midi_file(sample_midi_path: str):
@@ -70,7 +71,8 @@ def save_output_midi(out_midi_obj, prediction_strategy,
         out_midi_obj.dump(out_path)
     print(f"> Output MIDI saved to path {out_path}")
 
-
+if __name__ == '__main__':
+  print('Testing pipeline.py')
 
 
 '''

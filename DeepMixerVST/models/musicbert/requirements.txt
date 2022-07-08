@@ -1,1 +1,8 @@
-torch>=1.11.0
+git+https://github.com/pytorch/fairseq@336942734c85791a90baa373c212d27e7c722662#egg=fairseq
+scikit-learn==0.21.3
+miditoolkit==0.1.14
+torch==1.7.1
+scipy
+matplotlib
+miditoolkit
+
