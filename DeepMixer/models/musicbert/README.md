@@ -3,4 +3,10 @@
 
 # Commit information 
 
-**Working with the folder `muzic/musicbert` of the commit https://github.com/microsoft/muzic/tree/f833b4f383e3df06235913fd50d94c2600e7af23 for this project.**
+**Working with the folder `muzic/musicbert` of the commit https://github.com/microsoft/muzic/tree/f833b4f383e3df06235913fd50d94c2600e7af23 for this project.** 
+
+Added scripts: 
+- `utils/utils_label.py`
+- `utils/utils_masking.py`
+- `utils/utils_mask_prediction.py`
+- `pipeline.py`

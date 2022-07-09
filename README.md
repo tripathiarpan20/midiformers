@@ -35,7 +35,8 @@ Other features include:
 - [x] Prediction modes with trade-off between speed and quality of predictions.
 
 To be implemented: 
-- [ ] Prediction strategies like Top-k and Temperature for mask prediction 
+- [ ] Prediction strategies like Top-k and Temperature for mask predictions. 
+- [ ] Track-level masking. 
 
 
 ### Output samples <a name="deepmixeroutsamples"></a> 
