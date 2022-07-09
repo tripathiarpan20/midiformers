@@ -27,14 +27,55 @@ The live version of Colab notebook utilising the scripts in `DeepMixer/models/mu
 <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Image" style="display: block; margin: 0 auto" />
 </a>
 
+The notebook supports customisability on top of the original MusicBERT codebase, like masking chosen percentage of random notes from either whole MIDI stream/ notes from selected instruments based on user preference. 
+
+Other features include: 
+
+- [x] Option to leaving notes from the beginning `min_bar_mask` masks out of the masking pool to provide more initial context for mask prediction.  
+- [x] Prediction modes with trade-off between speed and quality of predictions.
+
+To be implemented: 
+- [ ] Prediction strategies like Top-k and Temperature for mask prediction 
+
+
 ### Output samples <a name="deepmixeroutsamples"></a> 
 Some of the samples from the above notebook along with the reference pieces can be found in a [Drive folder](https://drive.google.com/drive/folders/1fO9zKbwMHwDgy_p84q5dM5yFf0y8f9y9?usp=sharing).
 
 A few of our favorites are embedded below:  
 
 * Shock (Attack on Titan):
-    - Original: <audio ref='themeSong' src="https://drive.google.com/file/d/1QgDglLw4KxM1pGk1xXjhl_IA_BWj39QL" autoPlay loop></audio>
-    - Remix: <audio ref='themeSong' src="https://drive.google.com/file/d/1GntQWYpweRhbyZdguz0i3_n01FcRv_m3" autoPlay loop></audio>
+    - Original & Remix: 
+
+https://user-images.githubusercontent.com/42506819/178094976-a5763a31-70bf-4a17-b9e9-1255c0b9a1f0.mp4
+
+    
+
+
+https://user-images.githubusercontent.com/42506819/178094989-441471d2-78ce-4b6a-8e88-bd01aeab810e.mp4
+
+
 * Bohemian Rhapsody (Queen):
-    - Original: <audio ref='themeSong' src="https://drive.google.com/file/d/1dGkZ27SNuH-dKZzc-tYbCKtVjDORkSQM" autoPlay loop></audio>
-    - Remix:  <audio ref='themeSong' src="https://drive.google.com/file/d/1VIISqvyOZXmGE4WBHWWyhoIwHH-s-p8K" autoPlay loop></audio>
+    - Original & Remix: 
+    
+ 
+
+https://user-images.githubusercontent.com/42506819/178095093-1e1192bc-76e5-4027-b733-d63bed9ac206.mp4
+
+
+
+https://user-images.githubusercontent.com/42506819/178095109-b9a38d56-3b69-4169-9ed1-3eb82a47276a.mp4
+
+
+* Unforgiven 2 (Metallica): 
+    - Original & Remix: 
+    
+
+
+https://user-images.githubusercontent.com/42506819/178095316-6d19c803-3407-4bbd-81e1-0dc476b680d6.mp4
+
+
+
+https://user-images.githubusercontent.com/42506819/178095326-f6961d98-c574-4ee2-8d27-27efead79409.mp4
+
+
+    
