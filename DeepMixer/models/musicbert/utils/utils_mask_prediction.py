@@ -1,5 +1,6 @@
 from itertools import chain
 from enum import Enum
+import torch
 
 class PRED_MODE(Enum):
     VANILLA = 1
@@ -8,16 +9,52 @@ class PRED_MODE(Enum):
 
 class PRED_STRAT(Enum):
     TOP = 1  #Always takes the top prediction
-    TOP_K = 2  #Takes top-k results, performs softmax over then and uniformly samples based on the resultant probabilities
-    TEMPERATURE = 3 #Applies temperature over masked predictions
+    TEMPERATURE = 2 #Temperature based on thermodynamics higher value allows lower energy (prob) states to be encountered more 
+    TOP_K = 3  #Takes top-k results, performs softmax over then and uniformly samples based on the resultant probabilities. Will also utilize temperature. 
 
+
+def top_k_top_p(logits_batch, top_k=0, top_p=0.0, filter_value=-float('Inf')):
+    """ Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
+        Args:
+            logits: logits distribution shape (vocabulary size)
+            top_k >0: keep only top k tokens with highest probability (top-k filtering).
+            top_p >0.0: keep the top tokens with cumulative probability >= top_p (nucleus filtering).
+    """
+
+    logits_batch = logits_batch.clone()
+
+    if(logits_batch.dim == 1):
+      logits_batch.unsqueeze(0)
+
+    assert logits_batch.dim() == 2  # batch size 1 for now - could be updated for more but the code would be less clear
+    
+    # iterate through batch size 
+    for index, logits in enumerate(logits_batch):
+      top_k = min(top_k, logits.size(-1))  # Safety check
+      if top_k > 0:
+          # Remove all tokens with a probability less than the last token of the top-k
+          indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
+          logits[indices_to_remove] = filter_value
+
+      if top_p > 0.0:
+          sorted_logits, sorted_indices = torch.sort(logits, descending=True)
+          cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+
+          # Remove tokens with cumulative probability above the threshold
+          sorted_indices_to_remove = cumulative_probs > top_p
+          # Shift the indices to the right to keep also the first token above the threshold
+          sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+          sorted_indices_to_remove[..., 0] = 0
+
+          indices_to_remove = sorted_indices[sorted_indices_to_remove]
+          logits[indices_to_remove] = filter_value
+    return logits_batch
 
 #Helper function for OCTUPLE_MODE and MULTI_OCTUPLE_MODE
 # https://www.geeksforgeeks.org/break-list-chunks-size-n-python/
 def split_multi_oct(list_a, chunk_size):
   for i in range(0, len(list_a), chunk_size):
     yield list(chain(*list_a[i:i + chunk_size])) 
-
 
 #Predict missing masks in sequence from left to right
 
@@ -35,7 +72,7 @@ Else if prediction_mode is Vanilla, it predicts all the masks in the input `octu
 
 def predict_all_masks(roberta_model, roberta_label_dict, octuplemidi_token_encoding:torch.Tensor, masked_octuples:list = None,
                       prediction_mode:PRED_MODE = PRED_MODE.VANILLA, mask_attribs:list = [3,4,5] ,num_multi_octuples:int = None,
-                      prediction_strategy:PRED_STRAT = PRED_STRAT.TOP, prediction_temperatures = [1,1,1,1,1,1,1,1],
+                      prediction_strategy:PRED_STRAT = PRED_STRAT.TOP, temperature = 1.0, top_k=30, top_p=0.6,
                       verbose = False):
   mask_idx = 1236
   octuplemidi_token_encoding = octuplemidi_token_encoding.clone()
@@ -57,7 +94,6 @@ def predict_all_masks(roberta_model, roberta_label_dict, octuplemidi_token_encod
     print('End:', octuplemidi_token_encoding[-8:])
     print(torch.Tensor([bos_idx]*8))
     raise Exception('`octuplemidi_token_encoding` either does not have 8 <s> tokens or 8 </s> tokens at beginning and end')
-
 
   #---------------------------------------------------------------
   #Altering input mask list based on `prediction_mode`
@@ -169,42 +205,100 @@ def predict_all_masks(roberta_model, roberta_label_dict, octuplemidi_token_encod
   # `final_mask_indices` is of form [[3,4,5],[11,12,13]......] in `Octuple` prediction mode
   # `final_mask_indices` is of form [[3,4,5,11,12,13]......] in `Multi Octuple` prediction mode, in this case num_multi_octuples = 2
 
+  filter_value = -float('Inf')
   octuplemidi_token_encoding_device = octuplemidi_token_encoding.device
 
-  #Finally predicting masks based on `prediction_strategy`
-  if prediction_strategy == PRED_STRAT.TOP:
-    if prediction_mode == PRED_MODE.VANILLA or \
-        prediction_mode == PRED_MODE.OCTUPLE_MODE or \
-        prediction_mode == PRED_MODE.MULTI_OCTUPLE_MODE:
-      
+  # Finally predicting masks based on `prediction_strategy`
+  if prediction_mode == PRED_MODE.VANILLA or \
+      prediction_mode == PRED_MODE.OCTUPLE_MODE or \
+      prediction_mode == PRED_MODE.MULTI_OCTUPLE_MODE:
+    
+    # Greedy Sampling
+    if prediction_strategy == PRED_STRAT.TOP:
       for mask_idx_batch in tqdm(mask_indices):
           input = octuplemidi_token_encoding.unsqueeze(0).cuda()
           with torch.no_grad():
+            
+            # extr_features shape -> [1, 8016, 1237] 
+            # Here 1 is the batch size, 8016 is embedding dimension and 1237 is the vocab size 
             extr_features, _ = roberta_model.model.extract_features(input)
+            
+            # filter the mask indices from the extracted feature tokens (1000 octuples) 
+            logits = extr_features[0, mask_idx_batch ]
+            
+            probs = torch.softmax(logits, dim = 0)
+            
+            if probs.dim() == 1:
+              probs = probs.unsqueeze(0)
+    
+            top_preds = torch.argmax(probs, dim = 1)
+          octuplemidi_token_encoding_type = octuplemidi_token_encoding.dtype
 
-            probs = torch.softmax(extr_features[0, mask_idx_batch ], dim = 0)
+          octuplemidi_token_encoding[mask_idx_batch] = top_preds.\
+                                                      type(octuplemidi_token_encoding_type). \
+                                                      to(octuplemidi_token_encoding_device)
+      
+    # Temperature only Sampling 
+    elif prediction_strategy == PRED_STRAT.TEMPERATURE:
+       for mask_idx_batch in tqdm(mask_indices):
+          input = octuplemidi_token_encoding.unsqueeze(0).cuda()
+          with torch.no_grad():
+            
+            # extr_features shape -> [1, 8016, 1237] 
+            # Here 1 is the batch size, 8016 is embedding dimension and 1237 is the vocab size 
+            extr_features, _ = roberta_model.model.extract_features(input)
+            # filter the mask indices from the extracted feature tokens (1000 octuples) 
+            logits = extr_features[0, mask_idx_batch ]
+            if temperature != 1. : logits = logits/temperature
 
+            probs = torch.softmax(logits, dim = -1)
+            
             if probs.dim() == 1:
               probs = probs.unsqueeze(0)
             
-            top_preds = torch.argmax (probs, dim = 1)
+            # We sample from a multinomial distribution 
+            top_preds = torch.multinomial(probs, 1)
+            top_preds = top_preds.reshape(-1)
+          
+          octuplemidi_token_encoding_type = octuplemidi_token_encoding.dtype
+
+          octuplemidi_token_encoding[mask_idx_batch] = top_preds.\
+                                                      type(octuplemidi_token_encoding_type). \
+                                                      to(octuplemidi_token_encoding_device)
+
+    elif prediction_strategy == PRED_STRAT.TOP_K:
+       for mask_idx_batch in tqdm(mask_indices):
+          input = octuplemidi_token_encoding.unsqueeze(0).cuda()
+          with torch.no_grad():
             
-            octuplemidi_token_encoding_type = octuplemidi_token_encoding.dtype
+            # extr_features shape -> [1, 8016, 1237] 
+            # Here 1 is the batch size, 8016 is embedding dimension and 1237 is the vocab size 
+            extr_features, _ = roberta_model.model.extract_features(input)
+            # filter the mask indices from the extracted feature tokens (1000 octuples) 
+            logits = extr_features[0, mask_idx_batch ]
 
-            # print('Before: ', octuplemidi_token_encoding[mask_idx_batch] )
-            octuplemidi_token_encoding[mask_idx_batch] = top_preds.\
-                                                          type(octuplemidi_token_encoding_type). \
-                                                          to(octuplemidi_token_encoding_device)
-            # print('After: ', octuplemidi_token_encoding[mask_idx_batch] )
+            if temperature != 1. : logits = logits/temperature
+            
+            logits = top_k_top_p(logits, top_k=top_k, top_p=top_p, filter_value=filter_value)
 
-  elif prediction_strategy == PRED_STRAT.TOP_K:
-    raise NotImplementedError
-  elif prediction_strategy == PRED_STRAT.TEMPERATURE:
-    raise NotImplementedError
-  else:
-     raise Exception('Fatal error: Invalid `prediction_strategy`')
+            probs = torch.softmax(logits, dim = -1)
+            if probs.dim() == 1:
+              probs = probs.unsqueeze(0)
+
+            # We sample from a multinomial distribution
+            top_preds = torch.multinomial(probs, 1)
+            top_preds = top_preds.reshape(-1)
+          
+          octuplemidi_token_encoding_type = octuplemidi_token_encoding.dtype
+          octuplemidi_token_encoding[mask_idx_batch] = top_preds.\
+                                                      type(octuplemidi_token_encoding_type). \
+                                                      to(octuplemidi_token_encoding_device)
+
+    else:
+      raise Exception('Fatal error: Invalid `prediction_strategy`')
 
 
+          
   try:
     assert not any( torch.all(octuplemidi_token_encoding[octuple_midi_mask_elem] == mask_idx) for octuple_midi_mask_elem in mask_indices )
   except:
@@ -212,8 +306,3 @@ def predict_all_masks(roberta_model, roberta_label_dict, octuplemidi_token_encod
     raise Exception('Fatal error: The prediction has at least one element of `mask_indices` as <mask>')
 
   return octuplemidi_token_encoding
-
-  # print(output[0,0])
-  # print(output[0,0].argmax())
-  # masked_position = (token_ids.squeeze() == roberta_label_dict.mask_token_id).nonzero()
-  # masked_pos = [mask.item() for mask in masked_position ]
