@@ -7,6 +7,7 @@
     - [Installation <a name="deepmixerinstall"></a>](#installation-)
     - [Notebook <a name="deepmixernotebook"></a>](#notebook-)
     - [Output samples <a name="deepmixeroutsamples"></a>](#output-samples-)
+  - [Support](#support)
 
 ## DeepMixer <a name="deepmixer"></a> 
 
@@ -81,4 +82,6 @@ https://user-images.githubusercontent.com/42506819/178095316-6d19c803-3407-4bbd-
 https://user-images.githubusercontent.com/42506819/178095326-f6961d98-c574-4ee2-8d27-27efead79409.mp4
 
 
-    
+## Support
+
+There are many ways to support a project - starring⭐️ the GitHub repo is just one.
