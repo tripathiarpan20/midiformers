@@ -33,14 +33,16 @@ Other features include:
 
 - [x] Option to leaving notes from the beginning `min_bar_mask` masks out of the masking pool to provide more initial context for mask prediction.  
 - [x] Prediction modes with trade-off between speed and quality of predictions.
+- [x] Sampling strategies like Temperature, Top-k and Nuclues (Top-p) added for mask predictions. 
 
 To be implemented: 
-- [ ] Prediction strategies like Top-k and Temperature for mask predictions. 
+
+- [ ] Filtering invalid prediction for more consistent results. 
 - [ ] Track-level masking. 
 
 
 ### Output samples <a name="deepmixeroutsamples"></a> 
-Some of the samples from the above notebook along with the reference pieces can be found in a [Drive folder](https://drive.google.com/drive/folders/1fO9zKbwMHwDgy_p84q5dM5yFf0y8f9y9?usp=sharing).
+Some of the samples from the above notebook along with the reference pieces can be found in a [Drive folder](https://colab.research.google.com/drive/1pPFn-HhH7nZvfbWQlwEne7mm1uc2adOV?usp=sharing).
 
 A few of our favorites are embedded below:  
 
