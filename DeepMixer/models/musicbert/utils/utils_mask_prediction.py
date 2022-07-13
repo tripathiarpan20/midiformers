@@ -23,10 +23,11 @@ def top_k_top_p(logits_batch, top_k=0, top_p=0.0, filter_value=-float('Inf')):
 
     logits_batch = logits_batch.clone()
 
-    if(logits_batch.dim == 1):
-      logits_batch.unsqueeze(0)
+    # We have to convert logits_batch to correct dimension when batch size is 1 
+    if(logits_batch.dim() == 1):
+      logits_batch = logits_batch.unsqueeze(0)
 
-    assert logits_batch.dim() == 2  # batch size 1 for now - could be updated for more but the code would be less clear
+    assert logits_batch.dim() == 2  # check if logits are in correct dimensionality -> (batch, seq_length)
     
     # iterate through batch size 
     for index, logits in enumerate(logits_batch):
