@@ -42,7 +42,7 @@ To be implemented:
 - [ ] Track-level masking and multi-program/ins masking. 
 
 ### Output samples <a name="deepmixeroutsamples"></a> 
-Some of the samples from the above notebook along with the reference pieces can be found in a [Drive folder](https://colab.research.google.com/drive/1pPFn-HhH7nZvfbWQlwEne7mm1uc2adOV?usp=sharing).
+Some of the samples from the above notebook along with the reference pieces can be found in a [Drive folder](https://colab.research.google.com/drive/1pPFn-HhH7nZvfbWQlwEne7mm1uc2adOV?usp=sharing) , the songs are copyrighted by the respective owners.
 
 A few of our favorites are embedded below:  
 
