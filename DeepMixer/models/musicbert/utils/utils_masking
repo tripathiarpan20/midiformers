@@ -1,3 +1,40 @@
+import torch
+
+def get_bar_idx(octuple_encoding, bar):
+    """ Finds the index of given bar in octuple encoding 
+        Args: 
+          octuple_encoding: logits distribution shape (vocabulary size)
+          bar: bar whose index is needed to be found  
+        Returns: index of bar 
+    """
+
+    max_bars = octuple_encoding[-1][0] 
+
+    if(bar > max_bars):
+      print('starting bar greater than total no. of bars')
+      return 
+    
+    bars = list(zip(*octuple_encoding))[0]
+    
+    return bars.index(bar)
+
+def shift_bar_to_front(octuple_encoding):
+    """ Shifts the segment of song to correct starting position, when we chose a segment it does not 
+        neccesarily start with 0th bar, we need to shift the bars by subtracting minimum bar value 
+        Args: 
+          octuple_encoding: logits distribution shape (vocabulary size)
+        Returns: bar shifted octuple encoding 
+    """
+    
+    min_bar = octuple_encoding[0][0]
+
+    for index, oct in enumerate(octuple_encoding): 
+        oct_lst = list(oct)
+        oct_lst[0] -= min_bar
+        octuple_encoding[index] = tuple(oct_lst)
+
+    return octuple_encoding 
+
 def get_min_bar_idx_from_oct(octuple_midi_str_aslist = ("<s> "*8).split() + (" </s>"*8).split()
               , min_bar_mask: int = 0):
   

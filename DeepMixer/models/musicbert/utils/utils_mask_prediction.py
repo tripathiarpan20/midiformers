@@ -2,7 +2,6 @@ from itertools import chain
 from enum import Enum
 import torch
 
-
 # Storing string encodings for utility functions
 BAR_START = "<0-0>"
 BAR_END = "<0-255>"
@@ -35,7 +34,6 @@ SPECIAL_TOKENS = ['<mask>', '<s>', '<pad>', '</s>', '<unk>']
 class PRED_MODE(Enum):
     VANILLA = 1
     OCTUPLE_MODE = 2
-
 
 # Functions to return range of indices for an Octuple element
 def bar_range(label_dict): return label_dict.index(
@@ -95,10 +93,10 @@ def switch_temperature(prev_index: int, label_dict, temperature_dict):
 
 def filter_invalid_indexes(logits, prev_index, label_dict, filter_value=-float('Inf')):
     """ Filter a distribution of logits using prev_predicted token 
-          Args:
-              logits: logits distribution shape (vocabulary size)
-              prev_index: previous predicted token 
-              label_dict : dictionary mapping string octuple encodings to indices 
+        Args:
+            logits: logits distribution shape (vocabulary size)
+            prev_index: previous predicted token 
+            label_dict : dictionary mapping string octuple encodings to indices 
         Returns: filtered logits according to prev_idx 
     """
 
