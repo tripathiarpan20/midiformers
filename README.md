@@ -24,7 +24,7 @@ cd midiformers/DeepMixer/models/musicbert
 ### Notebook <a name="deepmixernotebook"></a> 
 The live version of Colab notebook utilising the scripts in `DeepMixer/models/musicbert` can be accessed from this link : 
 
-<a href="https://colab.research.google.com/drive/16ewMmobXSQkNSCoGm_P2UdGD5gDc8jcn?usp=sharing">
+<a href="https://colab.research.google.com/gist/tripathiarpan20/159ad4330086f4934e5b0a093eb2434b/-archived-musicbert_mask_prediction_latest_multiprogram.ipynb">
 <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Image" style="display: block; margin: 0 auto" />
 </a>
 
